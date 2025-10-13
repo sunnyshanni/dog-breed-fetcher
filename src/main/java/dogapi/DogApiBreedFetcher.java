@@ -4,6 +4,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -29,7 +30,31 @@ public class DogApiBreedFetcher implements BreedFetcher {
         //      and the documentation for the dog.ceo API. You may find it helpful
         //      to refer to the examples of using OkHttpClient from the last lab,
         //      as well as the code for parsing JSON responses.
-        // return statement included so that the starter code can compile and run.
-        return new ArrayList<>();
+        final Request request = new Request.Builder()
+                .url("https://dog.ceo/api/breeds/list/all")
+                .build();
+        try {
+            final Response response = client.newCall(request).execute();
+            final JSONObject responseBody = new JSONObject(response.body().string());
+
+            if (responseBody.getString("status").equals("success")){
+                final JSONObject allBreeds = responseBody.getJSONObject("message");
+                if (!allBreeds.has(breed)) {
+                    throw new BreedNotFoundException("Breed not found: " + breed);
+                }
+                final JSONArray subBreedsArray = allBreeds.getJSONArray(breed);
+                final List<String> subBreeds = new ArrayList<>();
+                for (int i = 0; i < subBreedsArray.length(); i++) {
+                    subBreeds.add(subBreedsArray.getString(i));
+                }
+                return subBreeds;
+            }
+            else {
+                throw new BreedNotFoundException("Breed not found: " + breed);
+            }
+        }
+        catch (IOException | JSONException event) {
+            throw new RuntimeException(event);
+        }
     }
 }
